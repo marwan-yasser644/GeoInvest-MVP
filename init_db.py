@@ -4,8 +4,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def refill_data():
+def initialize_database():
     try:
+        # الاتصال بقاعدة بيانات Neon
         conn = psycopg2.connect(
             host=os.getenv("DB_HOST"),
             database=os.getenv("DB_NAME"),
@@ -15,10 +16,22 @@ def refill_data():
         )
         cur = conn.cursor()
         
-        # تنظيف الجدول أولاً عشان ما نكررش
-        cur.execute("TRUNCATE TABLE locations;")
+        print("🛠️ Creating table 'locations'...")
+        # 1. إنشاء الجدول لو مش موجود
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS locations (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) UNIQUE NOT NULL,
+                category VARCHAR(100),
+                latitude DOUBLE PRECISION,
+                longitude DOUBLE PRECISION
+            );
+        """)
 
-        # إضافة 6 محلات متنوعة (مولات، كافيهات، مطاعم)
+        # 2. تنظيف البيانات القديمة (اختياري)
+        cur.execute("TRUNCATE TABLE locations RESTART IDENTITY;")
+
+        # 3. إضافة البيانات الأولية للشيخ زايد
         sample_data = [
             ('Arkan Plaza', 'Mall', 30.0125, 30.9850),
             ('Capital Business Park', 'Business', 30.0180, 30.9780),
@@ -28,18 +41,20 @@ def refill_data():
             ('The Lane', 'Restaurant', 30.0135, 30.9835)
         ]
 
+        print("📥 Inserting sample data...")
         cur.executemany("""
             INSERT INTO locations (name, category, latitude, longitude) 
             VALUES (%s, %s, %s, %s)
+            ON CONFLICT (name) DO NOTHING;
         """, sample_data)
 
         conn.commit()
         cur.close()
         conn.close()
-        print("✅ Data Refilled: 6 Locations added. Accuracy should be 100% now!")
+        print("✅ Database Initialized Successfully on Cloud!")
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ Error during initialization: {e}")
 
 if __name__ == "__main__":
-    refill_data()
+    initialize_database()
