@@ -1,5 +1,7 @@
-playwright
-psycopg2-binary
-geopy
+streamlit
 pandas
+psycopg2-binary
+folium
+streamlit-folium
 python-dotenv
+openai
